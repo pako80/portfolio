@@ -12,6 +12,16 @@
 export interface Image {
   src: string;
   alt: string;
+  /** A screen recording shown inside the phone frame in the home hero. `src` is then the still used as the poster. */
+  video?: string;
+  /** The still shown until the recording starts (or if it cannot autoplay). It must be the bare screen: the phone frame is drawn over it. */
+  videoPoster?: string;
+  /** The recording has the iOS screen-recording indicator at the top: hide it behind a black patch. */
+  hideRecordingDot?: boolean;
+  /** In the home hero, show the flipping Trunfo card instead of a phone. */
+  cardFlip?: boolean;
+  /** In the home hero, scale a still up (1.15 is 15% larger) around its centre. Defaults to 1. */
+  heroScale?: number;
 }
 
 export interface Stage {
@@ -29,6 +39,24 @@ export interface Stage {
   badges?: Badge[];
   /** A cropped screenshot of one screen, without a phone frame. */
   screen?: Screen;
+  /** A row of images drifting slowly from right to left, looping, on the dark panel. */
+  marquee?: Image[];
+  /** The Trunfo card that flips, floats and glints, played while this stage is on screen. */
+  cardFlip?: boolean;
+  /** A looping Lottie animation centred on the panel. */
+  lottie?: { src: string; label: string };
+  /** A short looping, muted video shown on the panel, fitted whole and centred. `fill` crops it to fill the panel instead, trimming whatever overflows. */
+  video?: {
+    src: string;
+    label: string;
+    fill?: boolean;
+    /** Show a tall screen recording the way a screenshot is shown: narrow, rounded at the top, hanging from near the top of the panel. */
+    screen?: { top?: number; headerSpace?: number };
+    /** Nudge the video down (positive) or up inside the panel, in pixels. */
+    offsetY?: number;
+    /** The clip has sound: show a mute toggle at the bottom right. It always starts muted. */
+    sound?: boolean;
+  };
   /** A finished wide image (cards, components) shown whole and centred on the panel, without phones. */
   image?: Image;
   /** Width of that image as a percentage of the panel. Above 100 the panel edge crops it. Defaults to 100. */
@@ -37,8 +65,12 @@ export interface Stage {
   imageOffset?: [number, number];
   /** Pin a tall image to the panel's bottom edge, so the panel crops the top of it. */
   imageBottom?: boolean;
+  /** Pin a tall image to the panel's top edge instead, so the panel crops the bottom of it. */
+  imageTop?: boolean;
   /** Phones enlarged so the panel's bottom edge crops them. */
   crop?: boolean;
+  /** A Lottie laid over the image's corner, e.g. to point out an entry point. Sizes are percentages of the panel. */
+  overlay?: { src: string; label: string; width: number; right: number; bottom: number; nudge?: [number, number] };
   /** A short label under the image: just the title of what it shows. */
   caption?: string;
   /** An SVG of the component this step is about, shown under the text. */
@@ -96,6 +128,8 @@ export interface CaseStudy {
   years: string;
   /** The phone shown on this project's cards, in the hero and the carousels. */
   thumbnail: Image;
+  /** Phones the home page hero cycles through for this project. Defaults to just the thumbnail. */
+  heroShots?: Image[];
   introduction: string[];
   impact: { lead: string; metrics: Metric[] };
   stages: Stage[];
@@ -103,6 +137,12 @@ export interface CaseStudy {
   outcomeScreens: Image[];
   /** Optional text links, e.g. live prototypes. The Links section only shows when this has entries. */
   links?: StudyLink[];
+  /** Extra images shown under the Solution screens, with a small subtitle, e.g. the cards of a card game. */
+  gallery?: { title: string; images: Image[] };
+  /** Wide images, such as character sheets, shown under the Solution screens, one above the other at full width. */
+  sheets?: Image[];
+  /** Name of the links section and its tab. Defaults to "Prototypes". */
+  linksTitle?: string;
   learnings: Learning[];
 }
 
@@ -116,7 +156,7 @@ const definePoints = ["Event Cards", "Navigation", "Player Props", "Combi & Bet 
 // One improvement area of the sportsbook, titled by its name. Text is a placeholder until written.
 const areaStage = (
   name: string,
-  media: Pick<Stage, "shots" | "badges" | "screen">,
+  media: Pick<Stage, "shots" | "badges" | "screen" | "video">,
   body = "Replace with what the problem was in this area, what you designed, and what changed as a result.",
   caption = name,
 ): Stage => ({
@@ -142,8 +182,32 @@ const casinoDeposit: Image = { src: "/work/mockups/casino-deposit.png", alt: "KT
 const casinoCrash: Image = { src: "/work/mockups/casino-crash-games.png", alt: "KTO native casino Crash Games category with sort by popularity" };
 const casinoVisuals: Image = { src: "/work/mockups/casino-visuals.png", alt: "KTO native casino game cards: Ganesha Fortune, The Tiger Is Back and The Great Icescape" };
 const casinoNavigationGames: Image = { src: "/work/mockups/casino-navigation-games.png", alt: "Game cards in the native casino: Piggy Gold, Fortune Dragon and Fortune Tiger" };
-const casinoFiltering: Image = { src: "/work/mockups/casino-filtering.png", alt: "Game filtering in the native casino" };
 const casinoDepositPhone: Image = { src: "/work/mockups/casino-deposit.png", alt: "KTO native casino in-game Deposit sheet over Ganesha Gold with quick amounts" };
+const jackpotComponent: Image = { src: "/work/mockups/jackpot-component.png", alt: "KTO Jackpot component with the Mega, Major, Minor and Mini jackpot amounts and an opt-in switch" };
+// The jackpot tiers, drawn as an SVG for the third Jackpot step.
+const jackpotTiers: Screen = {
+  src: "/work/components/jackpots-tiers.svg",
+  alt: "The jackpot tiers component",
+  width: 393,
+  height: 314,
+};
+const jackpotInGame: Image = { src: "/work/mockups/jackpot-in-game.png", alt: "KTO Jackpot inside Fortune Tiger, with the Mega jackpot amount and opt-in switch below the game" };
+const jackpotContribution: Image = { src: "/work/mockups/jackpot-contribution.png", alt: "KTO Jackpot Pick contribution sheet over Fortune Tiger, with five contribution levels" };
+const jackpotWheel: Image = { src: "/work/mockups/jackpot-wheel.png", alt: "KTO Jackpot prize wheel with the Mega, Major, Minor and Mini amounts" };
+const jackpotSplash: Image = { src: "/work/mockups/jackpot-splash.png", alt: "KTO Jackpot launch screen with the jackpot amounts and the line Hotter wins. Every spin." };
+const trunfoDrawCard: Image = { src: "/work/mockups/trunfo-draw-card.png", alt: "KTO Trunfo Draw a card screen with the daily calendar, a KTO Black 10k card and the reward details" };
+// Temporary stand-in until the Ciko visuals arrive (public/work/ciko/). Replace each use with the real artwork.
+const cikoCard: Image = { src: "/work/mockups/ciko-card.png", alt: "Ciko on a phone: the Capymillions gold logo above a capybara in a Seleção-style jersey, gold chain and gold aviators" };
+const cikoOuro: Image = { src: "/work/ciko/ciko-ouro.jpg", alt: "The Ouro medallion: a gold coin pendant with Ciko wearing aviators, framed by laurel leaves, on a gold chain" };
+const cikoHero: Image = { src: "/work/ciko/ciko-hero.png", alt: "Ciko, a capybara in a cream shirt, gold chain and gold aviators", heroScale: 1.0925 };
+const cikoSheet1: Image = { src: "/work/ciko/character-sheet-1.jpg", alt: "Ciko character sheet: front, side and back views and a close-up of the face, jersey and gold chain" };
+const cikoSheet2: Image = { src: "/work/ciko/character-sheet-2.jpg", alt: "Ciko character sheet with the Capymillions gold sign: poses holding the sign, a three-quarter view and back views" };
+const cikoStreet: Image = { src: "/work/ciko/ciko-street.jpg", alt: "Ciko in his Seleção-style jersey and gold chain, standing on a sunlit São Paulo street outside a restaurant terrace" };
+const trunfoOptin2: Image = { src: "/work/mockups/trunfo-optin-2.png", alt: "KTO Trunfo opt-in screen: a pack tearing open over cards, with Opt-in and Later buttons" };
+const trunfoMissedDetail: Image = { src: "/work/mockups/trunfo-missed-detail.png", alt: "KTO Trunfo reward detail for a previous day: 10 free spins, how to claim them and when the pack was opened" };
+const trunfoMissedChance: Image = { src: "/work/mockups/trunfo-missed-chance.png", alt: "KTO Trunfo Draw a card screen for a missed day: a sealed pack and the message You missed your chance" };
+const trunfoPack: Image = { src: "/work/mockups/trunfo-pack.png", alt: "KTO Trunfo Draw a card screen showing a sealed card pack, available tomorrow" };
+const liveTennis: Image = { src: "/work/mockups/live-tennis.png", alt: "KTO sportsbook live lobby on the Hot tab, showing live tennis matches" };
 const casinoHome: Image = { src: "/work/mockups/casino-home.png", alt: "KTO casino home screen with the Icescape promotion, game categories, Continue Playing and Best Games" };
 const jackpotsHome: Image = { src: "/work/mockups/jackpots-home.png", alt: "KTO Jackpot screen with the Mega, Major, Minor and Mini prizes above the prize wheel" };
 const trunfoHome: Image = { src: "/work/mockups/trunfo-home.png", alt: "KTO Trunfo opt-in screen: draw a card daily, collect cards and claim rewards" };
@@ -184,6 +248,15 @@ const fomoIllustration: Screen = {
   alt: "An event card carrying a FOMO label: Flamengo against Bahia, live score, match winner odds and a Sizzling tag",
   width: 367,
   height: 144,
+};
+
+// Ranked casino game cards (Fortune Tiger, Fortune Ox, Midas Fortune), shown under the Enrich UI With Casino Visuals text.
+const casinoTopGames: Screen = {
+  src: "/work/components/casino-top-games.png",
+  alt: "Top casino games ranked one to three: Fortune Tiger, Fortune Ox and Midas Fortune, each with a NEW badge and a count of players currently playing",
+  width: 798,
+  height: 384,
+  scale: 0.6,
 };
 
 // The live lobby illustration, drawn as an SVG for the Redesigned Live Lobby step.
@@ -395,7 +468,7 @@ export const caseStudies: CaseStudy[] = [
       {
         ...areaStage(
           "Redesigned Live Lobby",
-          { screen: liveLobbyScreen },
+          { video: { src: "/work/video/sportsbook-live-lobby.mp4", label: "The redesigned KTO live lobby: scrolling the Hot tab and live matches", screen: { top: 2, headerSpace: 6 } } },
           "The Live lobby was redesigned from the ground up, with a new Hot tab surfacing the most popular live events in real time. This brought previously hidden opportunities, such as major Grand Slam matches, to the forefront, making them easier for customers to discover and bet on. The new Pin feature allowed users to follow multiple live bets throughout the lifecycle of an event, giving them a more focused and persistent way to track their bets.",
         ),
         illustration: liveLobbyIllustration,
@@ -423,8 +496,8 @@ export const caseStudies: CaseStudy[] = [
     impact: {
       metrics: [
         { value: "+10%", label: "Jump of player engagement with previously difficult-to-find-markets like player props" },
-        { value: "30%", label: "Reduction of time to place a three fold combination bet" },
-        { value: "23.4%", label: "Reduction of time to find and place a live 1x2 bet" },
+        { value: "29.4%", label: "of customers who added a player prop to their betslip placed a matching bet in the same session" },
+        { value: "45s", label: "median time from adding a player prop to placing the bet" },
       ],
       lead: "A significantly improved, fully automated lobby powered by a trends service that increased event relevance, simplified navigation, enriched punters with useful information, and introduced FOMO-driven elements to encourage engagement.",
     },
@@ -451,6 +524,7 @@ export const caseStudies: CaseStudy[] = [
     },
     description: "A fully native redesign of KTO’s main casino vertical based on the inhouse platform.",
     thumbnail: casinoHome,
+    heroShots: [{ ...casinoHome, video: "/work/video/casino-lobby.mp4", videoPoster: "/work/mockups/casino-home-screen.jpg", hideRecordingDot: true }],
     stages: [
       {
         name: "Discover & Define",
@@ -471,7 +545,8 @@ export const caseStudies: CaseStudy[] = [
       {
         name: "Enrich UI With Casino Visuals",
         summary: "Enrich UI With Casino Visuals",
-        body: "The casino experience was enriched by leveraging game imagery and visual elements to create a more immersive, Netflix-like browsing experience.\n\nThe goal was to move beyond a functional game catalogue and make discovery more engaging, using rich visuals, curated content and stronger hierarchy to help customers quickly find games they want to play.",
+        body: "The casino experience was enriched by leveraging game imagery and visual elements to create a more immersive, Netflix-like browsing experience as well as FOMO elements and top 10 games near you.",
+        illustration: casinoTopGames,
         image: casinoVisuals,
         imageWidth: 135,
         shots: [],
@@ -480,10 +555,8 @@ export const caseStudies: CaseStudy[] = [
         name: "Game Filtering",
         summary: "Game Filtering",
         body: "The game filtering experience was redesigned to make finding relevant titles faster and more intuitive. Popularity logic was improved to surface the most relevant games, while new filters allowed customers to search by game name and provider.\n\nThe UX focused on reducing browsing effort and giving customers more control over how they discover and navigate the game catalogue.",
-        image: casinoFiltering,
-        imageWidth: 100,
-        imageOffset: [100, 100],
-        shots: [],
+        shots: [casinoProviders],
+        crop: true,
       },
       {
         name: "In-Game Deposit",
@@ -513,18 +586,209 @@ export const caseStudies: CaseStudy[] = [
     title: "KTO Jackpot",
     ...kto,
     ...draftContent(),
-    description: "A side-bet jackpot product for casino slots, built on PrizeFlex APIs. The experience gives customers an additional chance to win progressive jackpot rewards while playing their favourite games.",
+    description: "An agnostic Jackpot Product designed and built for the Brazilian market on the PrizeFlex APIs.",
     thumbnail: jackpotsHome,
-    comingSoon: true,
+    heroShots: [],
+    stages: [
+      {
+        name: "Discover & Define",
+        summary: "Discover & Define",
+        body: "We worked on some early prototypes to discover ways how we can:",
+        points: ["Integrate multi-tier jackpots in the lobby", "Integrate the jackpot experience in the game", "Design an intuitive opt-in flow", "Create animated win sequences for each tier"],
+        shots: [jackpotsHome],
+        crop: true,
+      },
+      {
+        name: "Integrate multi-tier jackpots in the lobby",
+        summary: "Integrate multi-tier jackpots in the lobby",
+        body: "Building on the PrizeFlex APIs we designed a component that displays the multi-tiered Jackpot amounts as well as allow the customer to opt in.",
+        image: jackpotComponent,
+        imageWidth: 61.6,
+        shots: [],
+      },
+      {
+        name: "Integrate the jackpot experience in the game",
+        summary: "Integrate the jackpot experience in the game",
+        body: "An opt-in flow which does not disrupt the game experience.",
+        image: jackpotInGame,
+        imageWidth: 80,
+        imageBottom: true,
+        shots: [],
+        illustration: jackpotTiers,
+      },
+    ],
+    introduction: [
+      "Agnostic Jackpots are a relatively new concept in the Brazilian market, so we needed to find intuitive ways to integrate them into the casino experience.",
+      "We defined multiple entry points to help customers discover and engage with the product, while keeping the core gameplay seamless and uninterrupted.",
+    ],
+    years: "2026",
+    links: [{ label: "In-Game Jackpot Prototype", url: "https://jackpotwin.vercel.app/" }],
+    outcomeScreens: [jackpotContribution, jackpotWheel, jackpotSplash],
+    learnings: [],
+    impact: { lead: "", metrics: [] },
+  },
+  {
+    slug: "ciko-character-development",
+    title: "Character Development",
+    ...kto,
+    company: "Boundless",
+    ...draftContent(),
+    description:
+      "A character built from scratch to front the Capymillions product: a capybara from São Paulo with a backstory, a wardrobe, a voice and his own animations.",
+    years: "2026",
+    introduction: [
+      "We wanted a character who could carry the product across the lobby, the product tiers and every campaign, and who felt unmistakably Brazilian.",
+      "I led the development of Ciko, a capybara from Grajaú who has found his way to the rooftop bars of Itaim Bibi. I shaped his story, look, voice and motion, and the character sheet that keeps everyone using him consistently.",
+    ],
+    impact: { lead: "", metrics: [] },
+    stages: [
+      {
+        name: "Discover & Define",
+        summary: "Discover & Define",
+        body: "",
+        points: [
+          "Build a backstory rooted in São Paulo",
+          "Design a look that signals money and swagger",
+          "Give him a voice and personality",
+          "Bring him to life with motion",
+          "Extend him across the product tiers",
+        ],
+        video: { src: "/work/ciko/ciko-clip2.mp4", label: "Ciko idling in his Seleção jersey and gold chain" },
+        shots: [],
+      },
+      {
+        name: "Build a backstory rooted in São Paulo",
+        summary: "Build a backstory rooted in São Paulo",
+        body: "Ciko is a barrel-chested capybara from Grajaú, in the south of São Paulo, who now drifts between the cafés, rooftop bars and members' clubs of Itaim Bibi.\n\nThat journey from the rougher side of the city to the champagne terraces gave him confidence, hustle and a mystery: nobody knows how he made his fortune, and nobody asks.",
+        image: cikoStreet,
+        imageWidth: 114,
+        shots: [],
+      },
+      {
+        name: "Design a look that signals money and swagger",
+        summary: "Design a look that signals money and swagger",
+        body: "Ciko's wardrobe sits between streetwear and new money: a Seleção-style jersey worn slightly too tight, oversized gold chains, a custom capybara medallion, a gold watch and aviators he never takes off.\n\nA palette inspired by the green and gold of Brazil and a Miami skyline keeps him instantly recognisable, from a full turnaround to a close-up.",
+        image: cikoOuro,
+        imageWidth: 112,
+        shots: [],
+      },
+      {
+        name: "Give him a voice and personality",
+        summary: "Give him a voice and personality",
+        body: "Ciko is impossible to dislike: relaxed, charismatic and always the last to leave. Catchphrases like \"Relax, irmão... it'll work out\" and small quirks, like never taking his sunglasses off, give writers and designers a consistent voice to work from.",
+        video: { src: "/work/ciko/ciko-netflix.mp4", label: "Ciko in a tongue-in-cheek documentary-style clip", fill: true, sound: true },
+        shots: [],
+      },
+      {
+        name: "Bring him to life with motion",
+        summary: "Bring him to life with motion",
+        body: "Short animated loops give Ciko a relaxed, unbothered presence, and logo reveals in landscape and vertical formats introduce the Capymillions product in the lobby and on social.\n\nA tongue-in-cheek documentary-style clip shows how far the character can stretch into humour.",
+        video: { src: "/work/ciko/ciko-clip5.mp4", label: "Ciko striking a pose under a spotlight as gold confetti falls", fill: true },
+        shots: [],
+      },
+      {
+        name: "Extend him across the product tiers",
+        summary: "Extend him across the product tiers",
+        body: "Ciko fronts the Capymillions lockup, and each product tier, Ouro, Prata, Bronze and Metal, gets its own medallion in the matching metal, so a player can read the prize level at a glance.\n\nThe tagline \"O bicho não esfria\" ties it all together.",
+        video: { src: "/work/ciko/ciko-clip4.mp4", label: "Ciko beside a golden slot machine landing on triple sevens", fill: true, offsetY: 120 },
+        shots: [],
+      },
+    ],
+    outcomeScreens: [],
+    sheets: [cikoSheet1, cikoSheet2],
+    learnings: [],
+    linksTitle: "Links",
+    links: [{ label: "Ciko Character Sheet", url: "https://ciko-ten.vercel.app" }],
+    thumbnail: cikoCard,
+    heroShots: [cikoHero],
   },
   {
     slug: "kto-trunfo",
     title: "KTO Trunfo",
     ...kto,
     ...draftContent(),
-    description: "An in-house reward-based card game designed to drive daily engagement. Customers collect and open card packs, with each pack offering the chance to unlock rewards daily.",
+    description: "An in-house reward-based card game designed to boost daily engagement through collectible card packs and daily rewards.",
+    years: "2026",
+    impact: {
+      ...draftContent().impact,
+      lead: "Trunfo was launched for the 2026 World Cup and the impact on retention was significant.",
+      metrics: [
+        { value: "3M", label: "Daily rewards delivered to customers, from Freespins to Freebet and Odds Boosts" },
+        { value: "89%", label: "Average daily card pack open rate with customers interacting on a daily basis" },
+        { value: "90.5K", label: "ATH of daily customers participating in the card draw" },
+      ],
+    },
+    introduction: [
+      "An in-house reward-based card game designed to boost daily engagement through collectible card packs and daily rewards.",
+      "I shaped the branding, product design and assets for this in-house built product.",
+    ],
+    stages: [
+      {
+        name: "Discover & Define",
+        summary: "Discover & Define",
+        body: "",
+        points: [
+          "Discover entry points",
+          "Define an intuitive navigation pattern",
+          "Add surprise element using motion",
+          "Create engaging card designs",
+        ],
+        lottie: { src: "/lottie/trunfo.json", label: "The KTO Trunfo card animation" },
+      },
+      {
+        name: "Discover entry points",
+        summary: "Discover entry points",
+        body: "Trunfo needed to be easy to find without competing with the core betting experience. We placed a small animated entry point on high-traffic screens such as Live, so customers could jump into their daily card pack from where they already were.",
+        image: liveTennis,
+        imageWidth: 80,
+        imageBottom: true,
+        overlay: { src: "/lottie/trunfo-entrypoint.json", label: "The entry point to KTO Trunfo", width: 11.9, right: 14.5, bottom: 6, nudge: [-24, -22] },
+        shots: [],
+      },
+      {
+        name: "Define an intuitive navigation pattern",
+        summary: "Define an intuitive navigation pattern",
+        body: "The pack opening needed to feel simple enough to repeat every day. We kept the flow short and linear, from tapping the entry point to opening the pack, so customers always knew what to do next and could reach their rewards in a few taps.",
+        image: trunfoPack,
+        imageWidth: 80,
+        imageTop: true,
+        shots: [],
+      },
+      {
+        name: "Add surprise element using motion",
+        summary: "Add surprise element using motion",
+        body: "Motion turns opening a pack into a moment worth coming back for. The card flips, floats and glints as it is revealed, building anticipation before the reward is shown.",
+        cardFlip: true,
+        shots: [],
+      },
+      {
+        name: "Create engaging card designs",
+        summary: "Create engaging card designs",
+        body: "The cards are the heart of the game, so each one needed to feel collectible and worth opening. I designed a family of cards with a consistent structure and distinct artwork, so every pull felt fresh while still reading as part of one Trunfo collection.",
+        marquee: [2, 3, 4, 5].map((n) => ({ src: `/work/trunfo/card-${n}.png`, alt: `KTO Trunfo card design ${n - 1}` })),
+        shots: [],
+      },
+    ],
+    // Order: opt-in, pack, reward detail, missed chance, VIP card.
+    outcomeScreens: [trunfoOptin2, trunfoPack, trunfoMissedDetail, trunfoMissedChance, trunfoDrawCard],
+    gallery: {
+      title: "Cards",
+      images: [
+        { src: "/work/trunfo/card-1.png", alt: "KTO Trunfo sample card 1" },
+        { src: "/work/trunfo/card-2.png", alt: "KTO Trunfo sample card 2" },
+        { src: "/work/trunfo/card-3.png", alt: "KTO Trunfo sample card 3" },
+        { src: "/work/trunfo/card-4.png", alt: "KTO Trunfo sample card 4" },
+        { src: "/work/trunfo/card-5.png", alt: "KTO Trunfo sample card 5" },
+        { src: "/work/trunfo/card-6.png", alt: "KTO Trunfo sample card 6" },
+        { src: "/work/trunfo/card-7.png", alt: "KTO Trunfo sample card 7" },
+        { src: "/work/trunfo/card-8.png", alt: "KTO Trunfo sample card 8" },
+      ],
+    },
+    learnings: [],
+    linksTitle: "Links",
+    links: [{ label: "Marketing Landing Page", url: "https://trunfo-chi.vercel.app" }],
     thumbnail: trunfoHome,
-    comingSoon: true,
+    heroShots: [{ ...trunfoHome, cardFlip: true }],
   },
 ];
 
